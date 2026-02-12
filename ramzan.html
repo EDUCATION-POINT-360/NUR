@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ramadan Full Calendar 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --white: #ffffff;
+            --accent: #2d3436;
+            --primary: #1e272e;
+            --glass: rgba(255, 255, 255, 0.9);
+            --shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--bg); color: var(--accent); padding: 15px; }
+        .container { max-width: 800px; margin: 0 auto; }
+
+        /* Modern Search Bar */
+        .search-area {
+            display: flex; background: var(--white); border-radius: 50px;
+            padding: 8px 20px; margin-bottom: 25px; box-shadow: var(--shadow);
+        }
+        input { flex: 1; border: none; outline: none; font-size: 16px; padding: 10px; background: transparent; }
+        .search-btn { background: var(--accent); color: white; border: none; padding: 10px 25px; border-radius: 50px; cursor: pointer; transition: 0.3s; }
+        .search-btn:hover { opacity: 0.8; }
+
+        /* Top Hero Card */
+        .hero {
+            background: var(--white); padding: 40px 20px; border-radius: 40px;
+            text-align: center; margin-bottom: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+            border: 1px solid #eee;
+        }
+        .hero h1 { font-size: 2.2rem; margin-bottom: 5px; }
+        
+        /* Countdown Box */
+        #countdown-box {
+            margin: 20px auto; padding: 20px; background: var(--primary); 
+            color: white; border-radius: 25px; text-align: center; display: none;
+            max-width: 400px; animation: fadeIn 0.5s ease;
+        }
+        #countdown-timer { font-size: 2.5rem; letter-spacing: 2px; font-weight: 600; }
+        #countdown-label { font-size: 0.8rem; letter-spacing: 2px; opacity: 0.8; text-transform: uppercase; }
+
+        .timing-now { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+        .t-card { background: var(--bg); padding: 20px; border-radius: 25px; border: 1px solid #efefef; }
+        .t-card h2 { font-size: 2rem; margin-top: 5px; }
+
+        /* Islamic Content */
+        .dua-card { background: var(--white); padding: 25px; border-radius: 30px; margin-bottom: 15px; border: 1px solid #eee; box-shadow: var(--shadow); }
+        .arabic { font-family: 'Amiri', serif; font-size: 1.8rem; direction: rtl; margin: 10px 0; color: #000; line-height: 1.6; }
+        .translation { font-style: italic; color: #555; font-size: 0.95rem; margin-top: 10px; display: block; border-left: 3px solid #eee; padding-left: 10px; }
+        .hadith-box { border-left: 4px solid var(--accent); }
+
+        /* Calendar Table */
+        .calendar-wrap {
+            background: var(--white); border-radius: 35px; overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.04); border: 1px solid #eee;
+        }
+        .calendar-header { padding: 20px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { padding: 18px; text-align: left; background: #fafafa; font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 15px 18px; border-bottom: 1px solid #f8f8f8; font-size: 0.9rem; }
+        
+        .today-row { background: var(--primary) !important; color: white !important; font-weight: 600; }
+        .today-row td { border-bottom: none; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate { animation: fadeIn 0.6s ease; }
+    </style>
+</head>
+<body>
+<a href="index.html" class="back-btn-modern">
+    <div class="icon-circle">
+        <i data-lucide="chevron-left"></i>
+    </div>
+    <span class="btn-text">Back to Home</span>
+</a>
+
+<style>
+    .back-btn-modern {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 20px 8px 8px;
+        background: var(--white);
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 50px;
+        text-decoration: none;
+        color: var(--primary);
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: var(--shadow);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        margin-bottom: 25px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .icon-circle {
+        width: 35px;
+        height: 35px;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: transform 0.4s ease;
+    }
+
+    /* Hover Animations */
+    .back-btn-modern:hover {
+        transform: translateX(5px);
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .back-btn-modern:hover .icon-circle {
+        background: white;
+        color: var(--primary);
+        transform: rotate(-360deg);
+    }
+
+    /* Entrance Animation for the whole button */
+    .back-btn-modern {
+        animation: slideInLeft 0.8s ease-out;
+    }
+
+    @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+</style>
+<div class="container animate">
+    <div class="search-area">
+        <input type="text" id="cityInput" placeholder="Enter City (e.g. Lahore, Dubai, London)">
+        <button class="search-btn" onclick="initApp()">Search</button>
+    </div>
+
+    <div class="hero">
+        <h1 id="cityDisp">Ramadan 2026</h1>
+        <p id="hijriDisp">Loading live Hijri date...</p>
+
+        <div id="countdown-box">
+            <small id="countdown-label">Time Remaining</small>
+            <div id="countdown-timer">00:00:00</div>
+        </div>
+
+        <div class="timing-now">
+            <div class="t-card">
+                <small>TODAY SEHRI</small>
+                <h2 id="liveSehri">--:--</h2>
+            </div>
+            <div class="t-card">
+                <small>TODAY IFTAR</small>
+                <h2 id="liveIftar">--:--</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="dua-card">
+        <p><b>Quranic Verse (Al-Baqarah 185)</b></p>
+        <div class="arabic">شَهْرُ رَمَضَانَ الَّذِي أُنزِلَ فِيهِ الْقُرْآنُ هُدًى لِّلنَّاسِ</div>
+        <span class="translation">"The month of Ramadhan [is that] in which was revealed the Qur'an, a guidance for the people and clear proofs of guidance and criterion."</span>
+    </div>
+
+    <div class="dua-card hadith-box">
+        <p><b>Daily Hadith</b></p>
+        <div class="arabic" id="hadithArabic" style="font-size: 1.4rem;">...</div>
+        <p id="hadithText" class="translation"></p>
+    </div>
+
+    <div class="dua-card">
+        <p><b>Sehri Dua</b></p>
+        <div class="arabic">وَبِصَوْمِ غَدٍ نَّوَيْتُ مِنْ شَهْرِ رَمَضَانَ</div>
+        <span class="translation">"I intend to keep the fast for tomorrow in the month of Ramadan."</span>
+    </div>
+
+    <div class="dua-card">
+        <p><b>Iftar Dua</b></p>
+        <div class="arabic">اللَّهُمَّ إِنِّي لَكَ صُمْتُ وَبِكَ آمَنْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ</div>
+        <span class="translation">"O Allah! I fasted for You and I believe in You and I break my fast with Your sustenance."</span>
+    </div>
+
+    <div class="calendar-wrap">
+        <div class="calendar-header">
+            <b>Full 30-Day Calendar</b>
+            <small id="calCity">Location: --</small>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roza</th>
+                        <th>Gregorian Date</th>
+                        <th>Sehri</th>
+                        <th>Iftar</th>
+                    </tr>
+                </thead>
+                <tbody id="calBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let countdownInterval;
+
+    async function initApp() {
+        const city = document.getElementById('cityInput').value || 'Faisalabad';
+        
+        try {
+            const [resFeb, resMarch] = await Promise.all([
+                fetch(`https://api.aladhan.com/v1/calendarByCity/2026/2?city=${city}&country=&method=2`),
+                fetch(`https://api.aladhan.com/v1/calendarByCity/2026/3?city=${city}&country=&method=2`)
+            ]);
+
+            const dataFeb = await resFeb.json();
+            const dataMarch = await resMarch.json();
+            
+            const combinedDays = [...dataFeb.data, ...dataMarch.data];
+            const ramadanDays = combinedDays.filter(day => day.date.hijri.month.number === 9);
+
+            renderFullCalendar(ramadanDays, city);
+            updateHadith();
+
+        } catch (error) {
+            alert("Error: City not found!");
+        }
+    }
+
+    function renderFullCalendar(days, city) {
+        const body = document.getElementById('calBody');
+        body.innerHTML = '';
+        document.getElementById('cityDisp').innerText = city.toUpperCase();
+        document.getElementById('calCity').innerText = `Location: ${city}`;
+
+        const now = new Date();
+        const currentGDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        let todayData = null;
+        let tomorrowData = null;
+
+        days.forEach((day, index) => {
+            const g = day.date.readable;
+            const isToday = g === currentGDate;
+            
+            if (isToday) {
+                todayData = day;
+                tomorrowData = days[index + 1] || null;
+            }
+
+            const sTime = day.timings.Fajr.split(' ')[0];
+            const iTime = day.timings.Maghrib.split(' ')[0];
+
+            if(isToday) {
+                document.getElementById('liveSehri').innerText = sTime;
+                document.getElementById('liveIftar').innerText = iTime;
+                document.getElementById('hijriDisp').innerText = `${day.date.hijri.day} ${day.date.hijri.month.en} ${day.date.hijri.year} AH`;
+            }
+
+            body.innerHTML += `
+                <tr class="${isToday ? 'today-row' : ''}">
+                    <td><b>${index + 1}</b></td>
+                    <td>${g}</td>
+                    <td>${sTime}</td>
+                    <td>${iTime}</td>
+                </tr>`;
+        });
+
+        if (todayData) setupCountdown(todayData, tomorrowData);
+    }
+
+    function setupCountdown(today, tomorrow) {
+        if (countdownInterval) clearInterval(countdownInterval);
+        const timerBox = document.getElementById('countdown-box');
+        const label = document.getElementById('countdown-label');
+        const display = document.getElementById('countdown-timer');
+        timerBox.style.display = 'block';
+
+        countdownInterval = setInterval(() => {
+            const now = new Date();
+            const [sH, sM] = today.timings.Fajr.split(':');
+            const [iH, iM] = today.timings.Maghrib.split(':');
+            
+            const sehriTime = new Date(now);
+            sehriTime.setHours(parseInt(sH), parseInt(sM), 0);
+            
+            const iftarTime = new Date(now);
+            iftarTime.setHours(parseInt(iH), parseInt(iM), 0);
+
+            let target;
+            if (now < sehriTime) {
+                target = sehriTime;
+                label.innerText = "Time until Sehri ends";
+            } else if (now < iftarTime) {
+                target = iftarTime;
+                label.innerText = "Time until Iftar";
+            } else if (tomorrow) {
+                const [tsH, tsM] = tomorrow.timings.Fajr.split(':');
+                target = new Date(now);
+                target.setDate(now.getDate() + 1);
+                target.setHours(parseInt(tsH), parseInt(tsM), 0);
+                label.innerText = "Time until next Sehri";
+            }
+
+            const diff = target - now;
+            if (diff <= 0) {
+                display.innerText = "00:00:00";
+                return;
+            }
+
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+
+            display.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    function updateHadith() {
+        const hadiths = [
+            { ar: "مَنْ صَامَ رَمَضَانَ إِيمَانًا وَاحْتِسَابًا غُفِرَ لَهُ مَا تَقَدَّمَ مِنْ ذَنْبِهِ", en: "Whoever fasts Ramadan out of faith and in the hope of reward, his previous sins will be forgiven." },
+            { ar: "تَسَحَّرُوا فَإِنَّ فِي السَّحُورِ بَرَكَةً", en: "Take Suhoor, for in Suhoor there is blessing." },
+            { ar: "الصِّيَامُ جُنَّةٌ", en: "Fasting is a shield (or a protection from the fire and from committing sins)." },
+            { ar: "لِلصَّائِمِ فَرْحَتَانِ فَرْحَةٌ عِنْدَ فِطْرِهِ وَفَرْحَةٌ عِنْدَ لِقَاءِ رَبِّهِ", en: "The fasting person has two joys: one when he breaks his fast and another when he meets his Lord." }
+        ];
+        const random = hadiths[Math.floor(Math.random()*hadiths.length)];
+        document.getElementById('hadithArabic').innerText = random.ar;
+        document.getElementById('hadithText').innerText = `"${random.en}"`;
+    }
+
+    window.onload = initApp;
+</script>
+
+</body>
+</html>
