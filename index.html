@@ -3,87 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUR | 100% Workable Bot</title>
+    <title>NUR | Hadith Bot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
-        .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.8; direction: rtl; }
-        .glass-card { background: white; border-radius: 2rem; border: 1px solid #E2E8F0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFDFD; }
+        .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 3; direction: rtl; }
+        .glass-ui { background: white; border: 1px solid #F0F0F0; border-radius: 2rem; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); }
+        .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+        @keyframes loading { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6 md:p-12">
 
     <div class="max-w-2xl mx-auto space-y-8">
         <div class="text-center">
-            <h1 class="text-4xl font-black tracking-tighter text-slate-900">NUR BOT</h1>
-            <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.3em] mt-2">Authenticated Hadith Engine</p>
+            <h1 class="text-4xl font-black tracking-tighter text-slate-900 italic">NUR</h1>
+            <div id="status-container" class="mt-2 flex items-center justify-center gap-2">
+                <div id="status-dot" class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></div>
+                <p id="status-text" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Connecting to Library...</p>
+            </div>
         </div>
 
-        <div class="glass-card p-2 flex items-center bg-white">
-            <input type="text" id="queryInput" placeholder="Ask about Manners, Parents, Sincerity..." 
+        <div class="glass-ui p-2 flex items-center bg-white">
+            <input type="text" id="userInput" placeholder="Ask about Manners, Parents, Sincerity..." 
                    class="w-full p-4 outline-none text-sm italic bg-transparent">
-            <button onclick="askNUR()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all">
+            <button onclick="runSearch()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all">
                 ASK
             </button>
         </div>
 
-        <div id="output" class="space-y-6">
-            <div class="p-20 text-center text-slate-300 italic border-2 border-dashed border-slate-100 rounded-[3rem]">
-                Ask a question to search Sahih Bukhari...
+        <div id="botFeed" class="space-y-6">
+            <div class="glass-ui p-8 space-y-4">
+                <div class="h-4 w-24 shimmer rounded"></div>
+                <div class="h-10 w-full shimmer rounded"></div>
+                <div class="h-20 w-full shimmer rounded"></div>
             </div>
         </div>
     </div>
 
     <script>
-        async function askNUR() {
-            const query = document.getElementById('queryInput').value.trim();
-            const output = document.getElementById('output');
-            
-            if(!query) return;
-
-            output.innerHTML = '<div class="p-20 text-center animate-pulse text-slate-400 font-bold text-[10px] tracking-widest uppercase">Bypassing CORS & Searching...</div>';
-
-            try {
-                // We use AllOrigins Proxy to prevent "CORS Error"
-                const targetUrl = encodeURIComponent(`https://hadithapi.com/api/hadiths?apiKey=$2y$10$fV3mPzPz7y1S0f5xKzYp0u3XNlY4X3p4f5X1Z&en=${query}&paginate=5`);
-                const proxyUrl = `https://api.allorigins.win/get?url=${targetUrl}`;
-
-                const response = await fetch(proxyUrl);
-                const proxyData = await response.json();
-                const data = JSON.parse(proxyData.contents); // AllOrigins wraps the result in 'contents'
-
-                if (data.hadiths && data.hadiths.data.length > 0) {
-                    render(data.hadiths.data);
-                } else {
-                    output.innerHTML = '<div class="p-10 glass-card text-center text-slate-500">No results found. Try a different word.</div>';
-                }
-            } catch (error) {
-                console.error(error);
-                output.innerHTML = `
-                    <div class="p-10 glass-card text-center space-y-4 border-red-100 border-2">
-                        <p class="text-red-500 font-bold">Proxy Error</p>
-                        <p class="text-[10px] text-slate-400 uppercase leading-relaxed">The API is blocking direct access. <br> Please try searching on Sunnah.com directly.</p>
-                        <a href="https://sunnah.com/search?q=${query}" target="_blank" class="inline-block bg-slate-900 text-white px-6 py-2 rounded-full text-[10px] font-bold">Open External Search</a>
-                    </div>`;
-            }
-        }
-
-        function render(items) {
-            const output = document.getElementById('output');
-            output.innerHTML = items.map(h => `
-                <div class="glass-card p-8 hover:border-emerald-400 transition-all duration-500">
-                    <div class="flex justify-between text-[9px] font-black text-slate-300 uppercase tracking-widest mb-6">
-                        <span>${h.bookName}</span>
-                        <span class="text-emerald-500">${h.status}</span>
-                    </div>
-                    <div class="font-urdu text-right text-2xl text-slate-800 mb-8 font-bold">${h.hadithUrdu || "Urdu text loading..."}</div>
-                    <div class="text-[13px] text-slate-500 italic border-t border-slate-50 pt-6 leading-relaxed">
-                        "${h.hadithEnglish}"
-                    </div>
-                </div>
-            `).join('');
-        }
-    </script>
-</body>
-</html>
+        
