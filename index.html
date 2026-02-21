@@ -3,99 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUR - Authentic Engine</title>
+    <title>NUR - Authentic Library</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
-        .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.5; direction: rtl; }
-        .font-eng { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-radius: 1.5rem; border: 1px solid white; }
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F3F4F6; }
+        .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.8; direction: rtl; }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 2rem;
+        }
+
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #10B981;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-10 font-eng">
+<body class="p-4 md:p-10">
 
-    <div class="max-w-4xl mx-auto space-y-6">
-        <div class="glass p-6 shadow-sm flex justify-between items-center">
+    <div class="max-w-4xl mx-auto space-y-8">
+        <header class="flex justify-between items-center px-4">
             <div>
-                <h1 class="text-3xl font-black tracking-tighter">NUR🌙</h1>
-                <p id="hijri-date" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Loading Date...</p>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-900">NUR</h1>
+                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em]">Authentic Hadith Engine</p>
             </div>
-            <div id="prayer-display" class="text-right text-[10px] font-bold text-emerald-600 space-y-1">
-                Fetching Prayer Times...
+            <div id="status-pill" class="hidden items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
+                <div class="loader"></div>
+                <span class="text-[9px] font-bold text-slate-500 uppercase">Syncing...</span>
             </div>
+        </header>
+
+        <div class="glass p-2 shadow-xl flex items-center">
+            <input type="text" id="searchInput" 
+                placeholder="Search Manners, Parents, Prayer..." 
+                class="w-full p-4 bg-transparent outline-none text-sm italic font-light">
+            <button onclick="performSearch()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg">
+                SEARCH
+            </button>
         </div>
 
-        <div class="glass p-2 shadow-lg flex">
-            <input type="text" id="query" placeholder="Search Quran or Hadith..." class="w-full p-4 bg-transparent outline-none text-sm italic">
-            <button onclick="runGlobalSearch()" class="bg-slate-900 text-white px-10 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all">SEARCH</button>
-        </div>
-
-        <div id="feed" class="space-y-6">
-            <div class="p-20 text-center text-gray-400 animate-pulse font-bold">Connecting to Global Islamic Servers...</div>
+        <div id="feed" class="grid grid-cols-1 gap-6">
+            <div class="p-20 text-center">
+                <p class="text-slate-400 italic">Connecting to authentic mirrors...</p>
+            </div>
         </div>
     </div>
 
     <script>
-        // API CONFIGURATION
-        const CONFIG = {
-            // Using a public proxy to avoid "API ERROR" or "CORS ERROR"
-            PROXY: "https://api.allorigins.win/raw?url=",
-            HADITH_API: "https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/eng-bukhari.min.json",
-            HADITH_URDU: "https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/urd-bukhari.min.json",
-            PRAYER_API: "https://api.aladhan.com/v1/timingsByCity?city=Karachi&country=Pakistan&method=2"
+        // 100% Stable Data Source (GitHub Mirrors)
+        const SOURCES = {
+            eng: "https://raw.githubusercontent.com/fawazaheed/hadith-api/1/editions/eng-bukhari.json",
+            urd: "https://raw.githubusercontent.com/fawazaheed/hadith-api/1/editions/urd-bukhari.json"
         };
 
-        let library = [];
+        let localLibrary = [];
 
+        // INITIALIZE SYSTEM
         async function initNUR() {
-            try {
-                // 1. Get Prayer Times
-                const pRes = await fetch(CONFIG.PRAYER_API);
-                const pData = await pRes.json();
-                document.getElementById('prayer-display').innerHTML = `FAJR: ${pData.data.timings.Fajr} | MAGHRIB: ${pData.data.timings.Maghrib}`;
-                document.getElementById('hijri-date').innerText = pData.data.date.hijri.date + " AH";
+            const status = document.getElementById('status-pill');
+            const feed = document.getElementById('feed');
+            status.style.display = 'flex';
 
-                // 2. Get Hadith (The "Error-Free" Way)
-                // We fetch directly; if it fails, the catch block handles it.
-                const [en, ur] = await Promise.all([
-                    fetch(CONFIG.HADITH_API).then(r => r.json()),
-                    fetch(CONFIG.HADITH_URDU).then(r => r.json())
+            try {
+                const [enRes, urRes] = await Promise.all([
+                    fetch(SOURCES.eng),
+                    fetch(SOURCES.urd)
                 ]);
 
-                library = en.hadiths.map((h, i) => ({
-                    id: h.hadithNumber,
-                    en: h.text,
-                    ur: ur.hadiths[i] ? ur.hadiths[i].text : "ترجمہ دستیاب نہیں",
+                const enData = await enRes.json();
+                const urData = await urRes.json();
+
+                // Build Unified Searchable Database
+                localLibrary = enData.hadiths.map((h, i) => ({
+                    number: h.hadithNumber,
+                    eng: h.text,
+                    urd: urData.hadiths[i] ? urData.hadiths[i].text : "ترجمہ دستیاب نہیں",
+                    grade: h.grades[0]?.grade || "Sahih"
                 }));
 
-                render(library.slice(0, 10));
-            } catch (err) {
-                console.error(err);
-                document.getElementById('feed').innerHTML = `<div class="p-10 text-center text-red-500 font-bold">API Access Error. Please refresh or check internet.</div>`;
+                status.style.display = 'none';
+                render(localLibrary.slice(0, 10)); // Initial view
+
+            } catch (error) {
+                console.error("NUR Sync Error:", error);
+                feed.innerHTML = `<div class="p-10 text-center text-red-500 font-bold bg-red-50 rounded-3xl">API Error: Check internet or disable ad-blockers.</div>`;
             }
         }
 
+        // RENDER ENGINE
         function render(data) {
             const feed = document.getElementById('feed');
+            if (data.length === 0) {
+                feed.innerHTML = `<div class="p-20 text-center text-slate-400">No results found in Sahih Bukhari.</div>`;
+                return;
+            }
+
             feed.innerHTML = data.map(h => `
-                <div class="glass p-8 shadow-sm border-l-4 border-emerald-500 animate-fade-in">
-                    <div class="flex justify-between text-[9px] font-bold text-gray-400 mb-4 uppercase">
-                        <span>Sahih Bukhari</span>
-                        <span>#${h.id}</span>
+                <div class="glass p-8 shadow-sm border-l-4 border-emerald-500 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div class="flex justify-between items-center mb-8">
+                        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-widest">Sahih</span>
+                        <span class="text-[10px] font-bold text-slate-300">#${h.number}</span>
                     </div>
-                    <div class="font-urdu text-right text-2xl text-gray-800 mb-6">${h.ur}</div>
-                    <div class="text-sm text-gray-500 italic border-t pt-4 leading-relaxed font-light">"${h.en}"</div>
+                    <div class="font-urdu text-right text-2xl text-slate-800 mb-8 leading-[2.2]">${h.urd}</div>
+                    <div class="text-[14px] text-slate-500 italic font-light border-t border-slate-100 pt-8 leading-relaxed">
+                        "${h.eng}"
+                    </div>
                 </div>
             `).join('');
         }
 
-        function runGlobalSearch() {
-            const q = document.getElementById('query').value.toLowerCase();
-            const filtered = library.filter(item => item.en.toLowerCase().includes(q) || item.ur.includes(q));
-            render(filtered.slice(0, 30));
+        // SEARCH FUNCTION (Zero Delay)
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const results = localLibrary.filter(h => 
+                h.eng.toLowerCase().includes(query) || h.urd.includes(query)
+            );
+            render(results.slice(0, 30)); // Limit search view for speed
         }
 
         window.onload = initNUR;
     </script>
 </body>
-</html></html>
+</html>
