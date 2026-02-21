@@ -3,137 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUR - Authentic Library</title>
+    <title>NUR - Exact Reference</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
-        
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F3F4F6; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F9FAFB; color: #1F2937; }
         .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.8; direction: rtl; }
-        
-        .glass {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 2rem;
-        }
-
-        .loader {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #10B981;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .glass { background: white; border: 1px solid #E5E7EB; border-radius: 2rem; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6 md:p-12">
 
-    <div class="max-w-4xl mx-auto space-y-8">
-        <header class="flex justify-between items-center px-4">
-            <div>
-                <h1 class="text-4xl font-black tracking-tighter text-slate-900">NUR</h1>
-                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em]">Authentic Hadith Engine</p>
-            </div>
-            <div id="status-pill" class="hidden items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
-                <div class="loader"></div>
-                <span class="text-[9px] font-bold text-slate-500 uppercase">Syncing...</span>
-            </div>
+    <div class="max-w-4xl mx-auto space-y-10">
+        <header class="text-center">
+            <h1 class="text-5xl font-black tracking-tighter mb-2">NUR</h1>
+            <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-600">Exact Quran & Hadith Reference</p>
         </header>
 
-        <div class="glass p-2 shadow-xl flex items-center">
-            <input type="text" id="searchInput" 
-                placeholder="Search Manners, Parents, Prayer..." 
-                class="w-full p-4 bg-transparent outline-none text-sm italic font-light">
-            <button onclick="performSearch()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg">
-                SEARCH
+        <div class="glass p-3 flex flex-col md:flex-row gap-2 shadow-xl">
+            <input type="text" id="refInput" placeholder="Enter Reference (e.g., 2:255 or Bukhari:1)" 
+                   class="flex-1 p-4 bg-transparent outline-none text-sm font-medium italic border-b md:border-b-0 md:border-r border-gray-100">
+            <button onclick="fetchExact()" class="bg-black text-white px-12 py-4 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all uppercase">
+                Fetch Exact
             </button>
         </div>
 
-        <div id="feed" class="grid grid-cols-1 gap-6">
-            <div class="p-20 text-center">
-                <p class="text-slate-400 italic">Connecting to authentic mirrors...</p>
+        <div id="display-area" class="space-y-6">
+            <div class="p-20 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-[3rem]">
+                Enter a Surah:Ayah or Book:Number to begin.
             </div>
         </div>
     </div>
 
     <script>
-        // 100% Stable Data Source (GitHub Mirrors)
-        const SOURCES = {
-            eng: "https://raw.githubusercontent.com/fawazaheed/hadith-api/1/editions/eng-bukhari.json",
-            urd: "https://raw.githubusercontent.com/fawazaheed/hadith-api/1/editions/urd-bukhari.json"
-        };
-
-        let localLibrary = [];
-
-        // INITIALIZE SYSTEM
-        async function initNUR() {
-            const status = document.getElementById('status-pill');
-            const feed = document.getElementById('feed');
-            status.style.display = 'flex';
+        async function fetchExact() {
+            const input = document.getElementById('refInput').value.trim();
+            const display = document.getElementById('display-area');
+            display.innerHTML = '<div class="text-center p-10 animate-pulse font-bold text-gray-400 uppercase tracking-widest text-[10px]">Verifying Reference...</div>';
 
             try {
-                const [enRes, urRes] = await Promise.all([
-                    fetch(SOURCES.eng),
-                    fetch(SOURCES.urd)
-                ]);
-
-                const enData = await enRes.json();
-                const urData = await urRes.json();
-
-                // Build Unified Searchable Database
-                localLibrary = enData.hadiths.map((h, i) => ({
-                    number: h.hadithNumber,
-                    eng: h.text,
-                    urd: urData.hadiths[i] ? urData.hadiths[i].text : "ترجمہ دستیاب نہیں",
-                    grade: h.grades[0]?.grade || "Sahih"
-                }));
-
-                status.style.display = 'none';
-                render(localLibrary.slice(0, 10)); // Initial view
-
-            } catch (error) {
-                console.error("NUR Sync Error:", error);
-                feed.innerHTML = `<div class="p-10 text-center text-red-500 font-bold bg-red-50 rounded-3xl">API Error: Check internet or disable ad-blockers.</div>`;
+                if (input.includes(':') && !isNaN(input.split(':')[0])) {
+                    // QURAN MODE (e.g., 2:255)
+                    await getQuran(input);
+                } else if (input.toLowerCase().includes('bukhari') || input.toLowerCase().includes('muslim')) {
+                    // HADITH MODE (e.g., Bukhari:1)
+                    await getHadith(input);
+                } else {
+                    display.innerHTML = '<div class="p-10 text-center text-red-400 font-bold">Format Error. Use "2:255" or "Bukhari:1"</div>';
+                }
+            } catch (e) {
+                display.innerHTML = '<div class="p-10 text-center text-red-400 font-bold">Reference not found in our database.</div>';
             }
         }
 
-        // RENDER ENGINE
-        function render(data) {
-            const feed = document.getElementById('feed');
-            if (data.length === 0) {
-                feed.innerHTML = `<div class="p-20 text-center text-slate-400">No results found in Sahih Bukhari.</div>`;
-                return;
-            }
+        async function getQuran(ref) {
+            const [surah, ayah] = ref.split(':');
+            const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/editions/quran-uthmani,en.sahih,ur.jalandhry`);
+            const data = await res.json();
+            const results = data.data;
 
-            feed.innerHTML = data.map(h => `
-                <div class="glass p-8 shadow-sm border-l-4 border-emerald-500 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            renderCard({
+                title: `Surah ${results[0].surah.englishName} (${ref})`,
+                arabic: results[0].text,
+                english: results[1].text,
+                urdu: results[2].text,
+                tag: "AL-QURAN"
+            });
+        }
+
+        async function getHadith(ref) {
+            const [book, num] = ref.split(':');
+            const res = await fetch(`https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/eng-${book.toLowerCase()}.json`);
+            const urdRes = await fetch(`https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/urd-${book.toLowerCase()}.json`);
+            
+            const engData = await res.json();
+            const urdData = await urdRes.json();
+            
+            // Find specific hadith number
+            const hEng = engData.hadiths.find(h => h.hadithNumber == num);
+            const hUrd = urdData.hadiths.find(h => h.hadithNumber == num);
+
+            renderCard({
+                title: `${book.toUpperCase()} • HADITH #${num}`,
+                arabic: "", // Some APIs don't provide raw Arabic, use Urdu/Eng
+                english: hEng.text,
+                urdu: hUrd.text,
+                tag: "HADITH"
+            });
+        }
+
+        function renderCard(data) {
+            const display = document.getElementById('display-area');
+            display.innerHTML = `
+                <div class="glass p-10 shadow-2xl border-l-8 border-emerald-500 animate-in fade-in duration-700">
                     <div class="flex justify-between items-center mb-8">
-                        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-widest">Sahih</span>
-                        <span class="text-[10px] font-bold text-slate-300">#${h.number}</span>
+                        <span class="text-[10px] font-black tracking-widest text-emerald-600 uppercase">${data.tag}</span>
+                        <span class="text-[10px] font-bold text-gray-300">${data.title}</span>
                     </div>
-                    <div class="font-urdu text-right text-2xl text-slate-800 mb-8 leading-[2.2]">${h.urd}</div>
-                    <div class="text-[14px] text-slate-500 italic font-light border-t border-slate-100 pt-8 leading-relaxed">
-                        "${h.eng}"
+                    ${data.arabic ? `<div class="text-right text-3xl font-serif mb-8 text-gray-900 leading-relaxed" dir="rtl">${data.arabic}</div>` : ''}
+                    <div class="font-urdu text-right text-2xl text-gray-800 mb-8">${data.urdu}</div>
+                    <div class="text-sm text-gray-500 italic font-light border-t border-gray-100 pt-8 leading-relaxed italic">
+                        "${data.english}"
                     </div>
                 </div>
-            `).join('');
+            `;
         }
-
-        // SEARCH FUNCTION (Zero Delay)
-        function performSearch() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const results = localLibrary.filter(h => 
-                h.eng.toLowerCase().includes(query) || h.urd.includes(query)
-            );
-            render(results.slice(0, 30)); // Limit search view for speed
-        }
-
-        window.onload = initNUR;
     </script>
 </body>
 </html>
