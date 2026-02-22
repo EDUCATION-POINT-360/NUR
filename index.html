@@ -3,92 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUR | Stable Library</title>
+    <title>NUR | 100% Workable Hadith</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFDFD; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
         .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 3; direction: rtl; }
-        .glass { background: white; border: 1px solid #F0F0F0; border-radius: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
+        .glass { background: white; border: 1px solid #E2E8F0; border-radius: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="p-4 md:p-10">
 
-    <div class="max-w-3xl mx-auto space-y-8">
-        <header class="flex justify-between items-center px-4">
-            <div>
-                <h1 class="text-4xl font-black tracking-tighter italic">NUR</h1>
-                <p id="status" class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-1">System Live</p>
-            </div>
-            <div id="date-display" class="text-right text-[10px] font-bold text-slate-400 uppercase"></div>
-        </header>
+    <div class="max-w-2xl mx-auto space-y-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-black tracking-tighter text-slate-900 italic">NUR BOT</h1>
+            <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-2">Global Hadith Database</p>
+        </div>
 
-        <div class="glass p-2 flex items-center bg-white border-2 border-slate-50 shadow-xl">
-            <input type="text" id="userInput" placeholder="Search (e.g. 'Parents', 'Kindness', 'Prayer')..." 
-                   class="w-full p-5 outline-none text-sm italic bg-transparent">
-            <button onclick="runSearch()" class="bg-black text-white px-10 py-4 rounded-2xl text-xs font-bold hover:bg-emerald-600 transition-all uppercase">
-                Search
+        <div class="glass p-2 flex items-center bg-white shadow-xl border-2 border-emerald-50">
+            <input type="text" id="botQuery" placeholder="Search (e.g. Manners, Sincerity, Truth)..." 
+                   class="w-full p-4 outline-none text-sm italic bg-transparent">
+            <button onclick="askBot()" class="bg-black text-white px-10 py-4 rounded-[2rem] text-xs font-bold hover:bg-emerald-600 transition-all uppercase shadow-lg">
+                Ask
             </button>
         </div>
 
-        <div id="feed" class="space-y-6 min-h-[400px]">
+        <div id="botResponse" class="space-y-6">
             <div class="p-20 text-center text-slate-300 italic border-2 border-dashed border-slate-100 rounded-[3rem]">
-                Enter a keyword to search 6 Authentic Books (Sihah al-Sittah).
+                Ask me a question to search the Sahih books.
             </div>
         </div>
     </div>
 
     <script>
-        // STABLE GLOBAL API CONFIG
-        const API_KEY = "$2y$10$fV3mPzPz7y1S0f5xKzYp0u3XNlY4X3p4f5X1Z"; // Public Verified Key
-        const API_URL = "https://hadithapi.com/api/hadiths";
+        // THIS IS THE FIX: We use a public CORS proxy to bypass GitHub's blocks
+        const PROXY = "https://api.allorigins.win/get?url=";
+        const API_KEY = "$2y$10$fV3mPzPz7y1S0f5xKzYp0u3XNlY4X3p4f5X1Z";
 
-        // Display Today's Date
-        document.getElementById('date-display').innerText = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        async function askBot() {
+            const query = document.getElementById('botQuery').value.trim();
+            const responseArea = document.getElementById('botResponse');
+            
+            if(!query) return;
 
-        async function runSearch() {
-            const query = document.getElementById('userInput').value.trim();
-            const feed = document.getElementById('feed');
-            const status = document.getElementById('status');
-
-            if (!query) return;
-
-            status.innerText = "Searching Global Servers...";
-            feed.innerHTML = '<div class="p-20 text-center animate-pulse font-bold text-slate-400 text-[10px] uppercase tracking-[0.3em]">Finding Authentic Narrations...</div>';
+            responseArea.innerHTML = '<div class="p-20 text-center animate-pulse text-slate-400 font-bold text-[10px] tracking-widest uppercase">Connecting to Verified Servers...</div>';
 
             try {
-                // Fetching via direct live search (No CORS blocks on this endpoint)
-                const res = await fetch(`${API_URL}?apiKey=${API_KEY}&en=${query}&paginate=15`);
-                const data = await res.json();
+                // We wrap the API call in a proxy. This is the secret to making it work on Chrome/GitHub.
+                const apiUrl = encodeURIComponent(`https://hadithapi.com/api/hadiths?apiKey=${API_KEY}&en=${query}&paginate=5`);
+                const response = await fetch(PROXY + apiUrl);
+                const proxyData = await response.json();
+                const data = JSON.parse(proxyData.contents);
 
                 if (data.hadiths && data.hadiths.data.length > 0) {
-                    status.innerText = "Results Loaded";
                     render(data.hadiths.data);
                 } else {
-                    status.innerText = "No Results";
-                    feed.innerHTML = '<div class="p-20 glass text-center text-slate-400">No matching Hadith found. Try a different word.</div>';
+                    responseArea.innerHTML = '<div class="p-10 glass text-center text-slate-400">I could not find a match. Try a word like "Mother" or "Honesty".</div>';
                 }
             } catch (error) {
-                console.error(error);
-                status.innerText = "Connection Error";
-                feed.innerHTML = `
+                // If even the proxy fails, we give the user a direct link
+                responseArea.innerHTML = `
                     <div class="p-10 glass text-center border-red-100 border-2">
-                        <p class="text-red-500 font-bold mb-2">API Timeout</p>
-                        <p class="text-xs text-slate-400">Please check your internet or try searching on <a href="https://sunnah.com/search?q=${query}" target="_blank" class="underline font-bold text-slate-900">Sunnah.com</a></p>
+                        <p class="text-red-500 font-bold mb-4">Direct Connection Required</p>
+                        <a href="https://sunnah.com/search?q=${query}" target="_blank" class="inline-block bg-slate-900 text-white px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest">Search Sunnah.com Directly</a>
                     </div>`;
             }
         }
 
-        function render(data) {
-            const feed = document.getElementById('feed');
-            feed.innerHTML = data.map(h => `
-                <div class="glass p-10 hover:border-emerald-500 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2">
-                    <div class="flex justify-between items-center mb-8">
-                        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-widest">${h.bookName}</span>
-                        <span class="text-[10px] font-bold text-slate-300">STATUS: ${h.status}</span>
+        function render(items) {
+            const area = document.getElementById('botResponse');
+            area.innerHTML = items.map(h => `
+                <div class="glass p-10 hover:border-emerald-400 transition-all duration-500 animate-fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-tighter">${h.bookName}</span>
+                        <span class="text-[9px] font-bold text-slate-300 italic">STATUS: ${h.status}</span>
                     </div>
-                    <div class="font-urdu text-right text-2xl text-slate-800 mb-8 font-bold">${h.hadithUrdu || "Urdu translation loading..."}</div>
-                    <div class="text-[14px] text-slate-500 italic border-t border-slate-50 pt-8 leading-relaxed font-light">
+                    <div class="font-urdu text-right text-2xl text-slate-800 mb-8 font-bold leading-relaxed">${h.hadithUrdu || "Urdu text loading..."}</div>
+                    <div class="text-[13px] text-slate-500 italic border-t border-slate-50 pt-8 leading-relaxed">
                         "${h.hadithEnglish}"
                     </div>
                 </div>
