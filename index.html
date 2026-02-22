@@ -3,128 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUR | Hadith Library</title>
+    <title>NUR | The Great Collection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
         .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.8; direction: rtl; }
         .glass { background: white; border: 1px solid #E2E8F0; border-radius: 1.5rem; }
-        .tab-active { border-bottom: 2px solid #10B981; color: #10B981; }
+        .book-btn { transition: 0.3s; border: 1px solid #E2E8F0; padding: 12px; border-radius: 1rem; font-size: 10px; font-weight: 800; text-transform: uppercase; background: white;}
+        .active-book { background: #111827; color: white; border-color: #111827; }
     </style>
 </head>
 <body class="p-4 md:p-10">
 
-    <div class="max-w-4xl mx-auto space-y-6">
-        <header class="flex justify-between items-center">
-            <h1 class="text-3xl font-black tracking-tighter italic">NUR LIBRARY</h1>
-            <div id="status" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select a Book</div>
+    <div class="max-w-4xl mx-auto space-y-8">
+        <header class="text-center">
+            <h1 class="text-4xl font-black tracking-tighter italic">NUR LIBRARY</h1>
+            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-2">The Complete Dual-Language Collection</p>
         </header>
 
-        <div class="flex overflow-x-auto gap-4 py-2 no-scrollbar text-[10px] font-bold uppercase tracking-widest border-b border-slate-200">
-            <button onclick="changeBook('bukhari')" class="book-tab tab-active pb-2 whitespace-nowrap">Bukhari</button>
-            <button onclick="changeBook('muslim')" class="book-tab pb-2 whitespace-nowrap text-slate-400">Muslim</button>
-            <button onclick="changeBook('tirmidhi')" class="book-tab pb-2 whitespace-nowrap text-slate-400">Tirmidhi</button>
-            <button onclick="changeBook('abudawood')" class="book-tab pb-2 whitespace-nowrap text-slate-400">Abu Dawood</button>
-            <button onclick="changeBook('nasai')" class="book-tab pb-2 whitespace-nowrap text-slate-400">Nasai</button>
-            <button onclick="changeBook('ibnmajah')" class="book-tab pb-2 whitespace-nowrap text-slate-400">Ibn Majah</button>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <button onclick="loadBook('bukhari', this)" class="book-btn active-book">Bukhari</button>
+            <button onclick="loadBook('muslim', this)" class="book-btn">Muslim</button>
+            <button onclick="loadBook('tirmidhi', this)" class="book-btn">Tirmidhi</button>
+            <button onclick="loadBook('abudawood', this)" class="book-btn">Abu Dawood</button>
+            <button onclick="loadBook('nasai', this)" class="book-btn">Nasai</button>
+            <button onclick="loadBook('ibnmajah', this)" class="book-btn">Ibn Majah</button>
         </div>
 
-        <div class="glass p-2 flex items-center bg-white shadow-sm">
-            <input type="text" id="searchInput" placeholder="Search by keyword (e.g. Manners, Truth)..." 
-                   class="w-full p-4 outline-none text-sm italic bg-transparent">
-            <button onclick="performSearch()" class="bg-slate-900 text-white px-8 py-3 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all">
-                SEARCH
-            </button>
-        </div>
+        <hr class="border-slate-200">
 
-        <div id="hadith-feed" class="space-y-6">
-            <div class="p-20 text-center text-slate-300 italic">Click search or wait for data sync...</div>
+        <div id="library-feed" class="space-y-8">
+            <div class="p-20 text-center text-slate-400 animate-pulse">Select a book to open the collection...</div>
         </div>
     </div>
 
     <script>
-        const CDN_BASE = "https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/";
-        let currentBook = 'bukhari';
-        let fullData = [];
+        const API_ROOT = "https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/";
 
-        // 1. SYNC DATA (Automatic & Stable)
-        async function loadBook(book) {
-            const status = document.getElementById('status');
-            const feed = document.getElementById('hadith-feed');
-            
-            status.innerText = `Syncing Sahih ${book.toUpperCase()}...`;
-            feed.innerHTML = '<div class="p-20 text-center animate-pulse text-slate-400 font-bold text-[10px] uppercase tracking-widest">Loading Translations...</div>';
+        async function loadBook(slug, btn) {
+            // Update UI
+            document.querySelectorAll('.book-btn').forEach(b => b.classList.remove('active-book'));
+            btn.classList.add('active-book');
+
+            const feed = document.getElementById('library-feed');
+            feed.innerHTML = '<div class="p-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">Opening Volumes...</div>';
 
             try {
-                // Fetch English and Urdu versions in parallel
+                // Fetch English and Urdu Versions
                 const [enRes, urRes] = await Promise.all([
-                    fetch(`${CDN_BASE}eng-${book}.min.json`),
-                    fetch(`${CDN_BASE}urd-${book}.min.json`)
+                    fetch(`${API_ROOT}eng-${slug}.min.json`),
+                    fetch(`${API_ROOT}urd-${slug}.min.json`)
                 ]);
 
                 const enData = await enRes.json();
                 const urData = await urRes.json();
 
-                // Merge collections
-                fullData = enData.hadiths.map((h, i) => ({
-                    num: h.hadithNumber,
-                    en: h.text,
-                    ur: urData.hadiths[i] ? urData.hadiths[i].text : "ترجمہ دستیاب نہیں",
-                    grade: h.grades[0]?.grade || "Sahih"
-                }));
-
-                status.innerText = `${book.toUpperCase()} Ready`;
-                render(fullData.slice(0, 15)); // Show initial 15
+                // Merge and Render
+                renderLibrary(enData.hadiths, urData.hadiths, slug);
             } catch (err) {
-                status.innerText = "Connection Error";
-                feed.innerHTML = '<div class="p-10 text-center text-red-400">API Error. Please check your internet.</div>';
+                feed.innerHTML = '<div class="p-10 glass text-center text-red-500">Error: Could not load data. Check internet.</div>';
             }
         }
 
-        // 2. RENDERER
-        function render(data) {
-            const feed = document.getElementById('hadith-feed');
-            if(data.length === 0) {
-                feed.innerHTML = '<div class="p-10 text-center text-slate-400">No matching narration found.</div>';
-                return;
-            }
+        function renderLibrary(enArr, urArr, bookName) {
+            const feed = document.getElementById('library-feed');
+            // We slice the first 100 to keep it fast. You can increase this.
+            const displayData = enArr.slice(0, 100);
 
-            feed.innerHTML = data.map(h => `
-                <div class="glass p-10 hover:border-emerald-500 transition-all duration-300">
+            feed.innerHTML = displayData.map((h, i) => `
+                <div class="glass p-10 hover:shadow-lg transition-shadow">
                     <div class="flex justify-between items-center mb-6">
-                        <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-tighter">${currentBook}</span>
-                        <span class="text-[9px] font-bold text-slate-300">HADITH #${h.num}</span>
+                        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">${bookName}</span>
+                        <span class="text-[10px] font-bold text-slate-300 tracking-tighter">HADITH #${h.hadithNumber}</span>
                     </div>
-                    <div class="font-urdu text-right text-2xl text-slate-800 mb-8 font-bold leading-relaxed">${h.ur}</div>
-                    <p class="text-[13px] text-slate-500 italic font-light border-t border-slate-50 pt-8 leading-relaxed">"${h.en}"</p>
-                    <div class="mt-4 text-[8px] font-bold text-slate-400 uppercase tracking-widest">Grading: ${h.grade}</div>
+                    <div class="font-urdu text-right text-3xl text-slate-800 mb-10 leading-loose">
+                        ${urArr[i] ? urArr[i].text : 'ترجمہ دستیاب نہیں'}
+                    </div>
+                    <div class="text-[15px] text-slate-500 italic border-t border-slate-50 pt-8 leading-relaxed font-light">
+                        "${h.text}"
+                    </div>
                 </div>
             `).join('');
         }
-
-        // 3. SEARCH & NAVIGATION
-        function performSearch() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            const results = fullData.filter(h => 
-                h.en.toLowerCase().includes(q) || h.ur.includes(q) || h.num == q
-            );
-            render(results.slice(0, 50));
-        }
-
-        function changeBook(book) {
-            currentBook = book;
-            // Update UI tabs
-            document.querySelectorAll('.book-tab').forEach(btn => {
-                btn.classList.remove('tab-active', 'text-slate-900');
-                btn.classList.add('text-slate-400');
-            });
-            event.target.classList.add('tab-active', 'text-slate-900');
-            loadBook(book);
-        }
-
-        // Init
-        window.onload = () => loadBook('bukhari');
     </script>
 </body>
 </html>
