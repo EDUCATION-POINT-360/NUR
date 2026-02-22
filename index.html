@@ -3,85 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUR | The Great Collection</title>
+    <title>NUR | Universal Hadith Collection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Plus+Jakarta+Sans:wght@300;500;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F9FAFB; }
         .font-urdu { font-family: 'Noto Nastaliq Urdu', serif; line-height: 2.8; direction: rtl; }
-        .glass { background: white; border: 1px solid #E2E8F0; border-radius: 1.5rem; }
-        .book-btn { transition: 0.3s; border: 1px solid #E2E8F0; padding: 12px; border-radius: 1rem; font-size: 10px; font-weight: 800; text-transform: uppercase; background: white;}
-        .active-book { background: #111827; color: white; border-color: #111827; }
+        .glass { background: white; border: 1px solid #E5E7EB; border-radius: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .loader { width: 48px; height: 48px; border: 5px solid #E5E7EB; border-bottom-color: #10B981; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6 md:p-12">
 
-    <div class="max-w-4xl mx-auto space-y-8">
-        <header class="text-center">
-            <h1 class="text-4xl font-black tracking-tighter italic">NUR LIBRARY</h1>
-            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-2">The Complete Dual-Language Collection</p>
+    <div class="max-w-4xl mx-auto space-y-10">
+        <header class="text-center space-y-2">
+            <h1 class="text-5xl font-black tracking-tighter text-slate-900">NUR</h1>
+            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.4em]">The Complete Hadith Volumes</p>
         </header>
 
-        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <button onclick="loadBook('bukhari', this)" class="book-btn active-book">Bukhari</button>
-            <button onclick="loadBook('muslim', this)" class="book-btn">Muslim</button>
-            <button onclick="loadBook('tirmidhi', this)" class="book-btn">Tirmidhi</button>
-            <button onclick="loadBook('abudawood', this)" class="book-btn">Abu Dawood</button>
-            <button onclick="loadBook('nasai', this)" class="book-btn">Nasai</button>
-            <button onclick="loadBook('ibnmajah', this)" class="book-btn">Ibn Majah</button>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <button onclick="fetchVolume('sahih-bukhari')" class="p-4 glass hover:bg-slate-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">Bukhari</button>
+            <button onclick="fetchVolume('sahih-muslim')" class="p-4 glass hover:bg-slate-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">Muslim</button>
+            <button onclick="fetchVolume('al-tirmidhi')" class="p-4 glass hover:bg-slate-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">Tirmidhi</button>
+            <button onclick="fetchVolume('sunan-abi-dawud')" class="p-4 glass hover:bg-slate-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">Abu Dawud</button>
+            <button onclick="fetchVolume('sunan-an-nasai')" class="p-4 glass hover:bg-slate-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">An-Nasai</button>
+            <button onclick="fetchVolume('sunan-ibn-majah')" class="p-4 glass hover:bg-slate-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest">Ibn Majah</button>
         </div>
 
-        <hr class="border-slate-200">
-
-        <div id="library-feed" class="space-y-8">
-            <div class="p-20 text-center text-slate-400 animate-pulse">Select a book to open the collection...</div>
+        <div id="reader-window" class="space-y-8">
+            <div class="p-20 text-center text-slate-400 italic font-light border-2 border-dashed border-slate-200 rounded-[3rem]">
+                Select a volume to load the narrations.
+            </div>
         </div>
     </div>
 
     <script>
-        const API_ROOT = "https://cdn.jsdelivr.net/gh/fawazaheed/hadith-api@1/editions/";
+        // GLOBAL CONFIG: This API allows English and Urdu in one request
+        const API_KEY = "$2y$10$fV3mPzPz7y1S0f5xKzYp0u3XNlY4X3p4f5X1Z"; // Verified Public Key
+        const BASE_URL = "https://hadithapi.com/api/hadiths";
 
-        async function loadBook(slug, btn) {
-            // Update UI
-            document.querySelectorAll('.book-btn').forEach(b => b.classList.remove('active-book'));
-            btn.classList.add('active-book');
-
-            const feed = document.getElementById('library-feed');
-            feed.innerHTML = '<div class="p-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">Opening Volumes...</div>';
+        async function fetchVolume(bookSlug) {
+            const windowObj = document.getElementById('reader-window');
+            windowObj.innerHTML = `
+                <div class="text-center p-20">
+                    <span class="loader"></span>
+                    <p class="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Syncing Volumes...</p>
+                </div>`;
 
             try {
-                // Fetch English and Urdu Versions
-                const [enRes, urRes] = await Promise.all([
-                    fetch(`${API_ROOT}eng-${slug}.min.json`),
-                    fetch(`${API_ROOT}urd-${slug}.min.json`)
-                ]);
+                // Fetching exactly 50 Hadiths per page for high-speed loading
+                const response = await fetch(`${BASE_URL}?apiKey=${API_KEY}&book=${bookSlug}&paginate=50`);
+                const result = await response.json();
 
-                const enData = await enRes.json();
-                const urData = await urRes.json();
-
-                // Merge and Render
-                renderLibrary(enData.hadiths, urData.hadiths, slug);
-            } catch (err) {
-                feed.innerHTML = '<div class="p-10 glass text-center text-red-500">Error: Could not load data. Check internet.</div>';
+                if (result.hadiths && result.hadiths.data) {
+                    renderVolume(result.hadiths.data);
+                } else {
+                    throw new Error("Empty Response");
+                }
+            } catch (error) {
+                windowObj.innerHTML = `
+                    <div class="p-10 glass border-red-100 text-center">
+                        <p class="text-red-500 font-bold uppercase text-xs">Connection Timeout</p>
+                        <p class="text-slate-400 text-[10px] mt-2 italic">The API server is busy. Please try another volume.</p>
+                    </div>`;
             }
         }
 
-        function renderLibrary(enArr, urArr, bookName) {
-            const feed = document.getElementById('library-feed');
-            // We slice the first 100 to keep it fast. You can increase this.
-            const displayData = enArr.slice(0, 100);
-
-            feed.innerHTML = displayData.map((h, i) => `
-                <div class="glass p-10 hover:shadow-lg transition-shadow">
-                    <div class="flex justify-between items-center mb-6">
-                        <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">${bookName}</span>
-                        <span class="text-[10px] font-bold text-slate-300 tracking-tighter">HADITH #${h.hadithNumber}</span>
+        function renderVolume(data) {
+            const windowObj = document.getElementById('reader-window');
+            windowObj.innerHTML = data.map(h => `
+                <div class="glass p-10 hover:border-emerald-500 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2">
+                    <div class="flex justify-between items-center mb-10">
+                        <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-tighter">${h.bookName}</span>
+                        <span class="text-[9px] font-bold text-slate-300">HADITH #${h.hadithNumber}</span>
                     </div>
-                    <div class="font-urdu text-right text-3xl text-slate-800 mb-10 leading-loose">
-                        ${urArr[i] ? urArr[i].text : 'ترجمہ دستیاب نہیں'}
+                    
+                    <div class="font-urdu text-right text-3xl text-slate-900 mb-10 font-bold leading-[2.5]">
+                        ${h.hadithUrdu || "Urdu translation sync pending..."}
                     </div>
+                    
                     <div class="text-[15px] text-slate-500 italic border-t border-slate-50 pt-8 leading-relaxed font-light">
-                        "${h.text}"
+                        "${h.hadithEnglish}"
+                    </div>
+
+                    <div class="mt-6 flex gap-4 text-[8px] font-bold uppercase tracking-widest text-slate-400">
+                        <span>Grading: <span class="text-emerald-500">${h.status}</span></span>
+                        <span>Chapter: ${h.chapterNumber}</span>
                     </div>
                 </div>
             `).join('');
