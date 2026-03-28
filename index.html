@@ -275,148 +275,212 @@
 
     </main>
 
-    <script>
-        const KEY = "$2y$10$MhCtBc8HwW7yNtV8NvrNPOYPoIuhwFlJFDIUcb9agVna9Bjkwa2H6";
-        let qMatches = [], hMatches = [], currentIdx = 0;
+    <script>const KEY = "$2y$10$MhCtBc8HwW7yNtV8NvrNPOYPoIuhwFlJFDIUcb9agVna9Bjkwa2H6";
+let qMatches = [], hMatches = [], currentIdx = 0;
 
-        document.getElementById('query-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') handleInquiry(); });
+// --- INITIALIZATION ---
+window.addEventListener('DOMContentLoaded', () => {
+    initNURSystems(); // Start Prayer Engine
+});
 
-        async function handleInquiry() {
-            const input = document.getElementById('query-input');
-            const val = input.value.trim();
-            if(!val) return;
+document.getElementById('query-input').addEventListener('keypress', (e) => { 
+    if(e.key === 'Enter') handleInquiry(); 
+});
 
-            document.getElementById('welcome').style.display = 'none';
-            const thread = document.getElementById('chat-thread');
+// --- PRAYER ENGINE (SILENT) ---
+async function initNURSystems() {
+    if ('serviceWorker' in navigator) {
+        try {
+            // Register sw.js (ensure this file exists in your root)
+            await navigator.serviceWorker.register('sw.js');
             
-            const userDiv = document.createElement('div');
-            userDiv.className = "user-bubble font-urdu text-2xl";
-            userDiv.innerText = val;
-            thread.appendChild(userDiv);
-            
-            thread.scrollTop = thread.scrollHeight;
-            input.value = '';
-            currentIdx = 0;
-
-            try {
-                const [qRes, hRes] = await Promise.all([
-                    fetch(`https://api.alquran.cloud/v1/search/${val}/all/ur.ahmedali`).then(r => r.json()),
-                    fetch(`https://hadithapi.com/api/hadiths?apiKey=${KEY}&hadithUrdu=${val}&paginate=10`).then(r => r.json())
-                ]);
-
-                qMatches = qRes.data?.matches || [];
-                hMatches = hRes.hadiths?.data || [];
-                
-                const oldBtn = document.querySelector('.load-more-btn');
-                if(oldBtn) oldBtn.remove();
-
-                await renderVerifiedResult();
-            } catch (e) {
-                thread.innerHTML += `<div class="p-4 text-red-400 text-center text-xs font-bold uppercase">Network error. Please try again.</div>`;
+            // Silently request notification permission
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                autoSyncNamaz();
             }
+        } catch (err) {
+            console.error('NUR Engine Init Failed', err);
         }
+    }
+}
 
-        async function renderVerifiedResult() {
-            const thread = document.getElementById('chat-thread');
-            const cardId = 'nur_' + Date.now();
+async function autoSyncNamaz() {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+            const response = await fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=1`);
+            const result = await response.json();
+            const timings = result.data.timings;
             
-            const q = qMatches[currentIdx];
-            const h = hMatches[currentIdx];
+            const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+            const now = Date.now();
 
-            if(!q && !h && currentIdx === 0) {
-                thread.innerHTML += `<div class="text-center py-10 font-urdu text-slate-400 text-2xl">کوئی نتیجہ نہیں ملا۔</div>`;
-                return;
-            }
+            navigator.serviceWorker.ready.then(reg => {
+                prayers.forEach(name => {
+                    const [hours, minutes] = timings[name].split(':');
+                    const scheduledTime = new Date();
+                    scheduledTime.setHours(parseInt(hours), parseInt(minutes), 0);
 
-            const card = document.createElement('div');
-            card.className = "glass-card";
-            card.id = cardId;
+                    const delay = scheduledTime.getTime() - now;
 
-            let cardHTML = `<div id="capture_${cardId}" class="space-y-10">`;
-            
-            if(q) {
-                cardHTML += `
-                <div class="space-y-6">
-                    <div class="flex justify-between items-center text-[10px] text-emerald-600 font-bold uppercase tracking-widest border-b border-emerald-100 pb-2">
-                        <span>Al-Qur'an</span>
-                        <span>Verse ${q.numberInSurah}</span>
-                    </div>
-                    <p class="font-arabic text-4xl text-right leading-relaxed" id="ar_q_${cardId}">...</p>
-                    <p class="font-urdu text-3xl text-right text-slate-700" id="ur_q_${cardId}"></p>
-                </div>`;
-            }
-
-            if(h) {
-                cardHTML += `
-                <div class="${q ? 'pt-10 border-t border-slate-100' : ''} space-y-6">
-                    <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest border-b border-slate-100 pb-2">
-                        <span>Hadith Sharif</span>
-                        <span>${h.bookName}</span>
-                    </div>
-                    <p class="font-arabic text-2xl text-right text-slate-600 leading-relaxed">${h.hadithArabic}</p>
-                    <p class="font-urdu text-2xl text-right text-slate-500" id="ur_h_${cardId}"></p>
-                </div>`;
-            }
-
-            cardHTML += `</div>
-                <div class="flex justify-between items-center pt-8 mt-8 border-t border-slate-100/50">
-                    <div class="flex gap-2">
-                        <button onclick="snap('${cardId}')" class="w-9 h-9 rounded-lg bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 flex items-center justify-center transition-all"><i class="fa-solid fa-camera text-sm"></i></button>
-                        <button onclick="copyContent('${cardId}')" class="w-9 h-9 rounded-lg bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 flex items-center justify-center transition-all"><i class="fa-solid fa-copy text-sm"></i></button>
-                    </div>
-                    <span class="text-[9px] text-slate-300 uppercase tracking-widest font-bold">Source Verified</span>
-                </div>`;
-
-            card.innerHTML = cardHTML;
-            thread.appendChild(card);
-            
-            const oldBtn = document.querySelector('.load-more-btn');
-            if(oldBtn) oldBtn.remove();
-
-            if(q) {
-                const ar = await fetch(`https://api.alquran.cloud/v1/ayah/${q.number}/quran-uthmani`).then(r => r.json());
-                document.getElementById(`ar_q_${cardId}`).innerText = ar.data.text;
-                await typeEffect(q.text, document.getElementById(`ur_q_${cardId}`));
-            }
-            if(h) await typeEffect(h.hadithUrdu, document.getElementById(`ur_h_${cardId}`));
-
-            const hasMore = (currentIdx + 1 < qMatches.length) || (currentIdx + 1 < hMatches.length);
-            if(hasMore) {
-                const moreBtn = document.createElement('button');
-                moreBtn.className = "load-more-btn";
-                moreBtn.innerHTML = `Next Result <i class="fa-solid fa-chevron-down"></i>`;
-                moreBtn.onclick = () => { currentIdx++; renderVerifiedResult(); };
-                thread.appendChild(moreBtn);
-            }
-            thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
-        }
-
-        async function typeEffect(txt, el) {
-            return new Promise(res => {
-                let i = 0; el.classList.add('typing');
-                const t = setInterval(() => {
-                    el.innerText += txt.charAt(i); i++;
-                    if(i >= txt.length) { clearInterval(t); el.classList.remove('typing'); res(); }
-                    document.getElementById('chat-thread').scrollTop = document.getElementById('chat-thread').scrollHeight;
-                }, 10);
+                    if (delay > 0) {
+                        reg.active.postMessage({
+                            type: 'SCHEDULE_NOTIFICATION',
+                            title: `Waqt-e-Namaz: ${name}`,
+                            body: `It is time for ${name} prayer in your location.`,
+                            prayerName: name,
+                            delay: delay
+                        });
+                    }
+                });
             });
+        } catch (err) {
+            console.warn("Prayer Sync Error");
         }
+    }, null, { enableHighAccuracy: false });
+}
 
-        function snap(id) {
-            const node = document.getElementById(`capture_${id}`);
-            html2canvas(node, { backgroundColor: "#f8fafc", scale: 2 }).then(canvas => {
-                const a = document.createElement('a');
-                a.download = `NUR-Insight.png`;
-                a.href = canvas.toDataURL();
-                a.click();
-            });
-        }
+// --- CORE SEARCH LOGIC ---
+async function handleInquiry() {
+    const input = document.getElementById('query-input');
+    const val = input.value.trim();
+    if(!val) return;
 
-        function copyContent(id) {
-            const text = document.getElementById(`capture_${id}`).innerText;
-            navigator.clipboard.writeText(text).then(() => alert("Copied!"));
-        }
-    </script>
+    document.getElementById('welcome').style.display = 'none';
+    const thread = document.getElementById('chat-thread');
+    
+    const userDiv = document.createElement('div');
+    userDiv.className = "user-bubble font-urdu text-2xl";
+    userDiv.innerText = val;
+    thread.appendChild(userDiv);
+    
+    thread.scrollTop = thread.scrollHeight;
+    input.value = '';
+    currentIdx = 0;
+
+    try {
+        const [qRes, hRes] = await Promise.all([
+            fetch(`https://api.alquran.cloud/v1/search/${val}/all/ur.ahmedali`).then(r => r.json()),
+            fetch(`https://hadithapi.com/api/hadiths?apiKey=${KEY}&hadithUrdu=${val}&paginate=10`).then(r => r.json())
+        ]);
+
+        qMatches = qRes.data?.matches || [];
+        hMatches = hRes.hadiths?.data || [];
+        
+        const oldBtn = document.querySelector('.load-more-btn');
+        if(oldBtn) oldBtn.remove();
+
+        await renderVerifiedResult();
+    } catch (e) {
+        thread.innerHTML += `<div class="p-4 text-red-400 text-center text-xs font-bold uppercase">Network error. Please try again.</div>`;
+    }
+}
+
+async function renderVerifiedResult() {
+    const thread = document.getElementById('chat-thread');
+    const cardId = 'nur_' + Date.now();
+    
+    const q = qMatches[currentIdx];
+    const h = hMatches[currentIdx];
+
+    if(!q && !h && currentIdx === 0) {
+        thread.innerHTML += `<div class="text-center py-10 font-urdu text-slate-400 text-2xl">کوئی نتیجہ نہیں ملا۔</div>`;
+        return;
+    }
+
+    const card = document.createElement('div');
+    card.className = "glass-card";
+    card.id = cardId;
+
+    let cardHTML = `<div id="capture_${cardId}" class="space-y-10">`;
+    
+    if(q) {
+        cardHTML += `
+        <div class="space-y-6">
+            <div class="flex justify-between items-center text-[10px] text-emerald-600 font-bold uppercase tracking-widest border-b border-emerald-100 pb-2">
+                <span>Al-Qur'an</span>
+                <span>Verse ${q.numberInSurah}</span>
+            </div>
+            <p class="font-arabic text-4xl text-right leading-relaxed" id="ar_q_${cardId}">...</p>
+            <p class="font-urdu text-3xl text-right text-slate-700" id="ur_q_${cardId}"></p>
+        </div>`;
+    }
+
+    if(h) {
+        cardHTML += `
+        <div class="${q ? 'pt-10 border-t border-slate-100' : ''} space-y-6">
+            <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest border-b border-slate-100 pb-2">
+                <span>Hadith Sharif</span>
+                <span>${h.bookName}</span>
+            </div>
+            <p class="font-arabic text-2xl text-right text-slate-600 leading-relaxed">${h.hadithArabic}</p>
+            <p class="font-urdu text-2xl text-right text-slate-500" id="ur_h_${cardId}"></p>
+        </div>`;
+    }
+
+    cardHTML += `</div>
+        <div class="flex justify-between items-center pt-8 mt-8 border-t border-slate-100/50">
+            <div class="flex gap-2">
+                <button onclick="snap('${cardId}')" class="w-9 h-9 rounded-lg bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 flex items-center justify-center transition-all"><i class="fa-solid fa-camera text-sm"></i></button>
+                <button onclick="copyContent('${cardId}')" class="w-9 h-9 rounded-lg bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 flex items-center justify-center transition-all"><i class="fa-solid fa-copy text-sm"></i></button>
+            </div>
+            <span class="text-[9px] text-slate-300 uppercase tracking-widest font-bold">Source Verified</span>
+        </div>`;
+
+    card.innerHTML = cardHTML;
+    thread.appendChild(card);
+    
+    const oldBtn = document.querySelector('.load-more-btn');
+    if(oldBtn) oldBtn.remove();
+
+    if(q) {
+        const ar = await fetch(`https://api.alquran.cloud/v1/ayah/${q.number}/quran-uthmani`).then(r => r.json());
+        document.getElementById(`ar_q_${cardId}`).innerText = ar.data.text;
+        await typeEffect(q.text, document.getElementById(`ur_q_${cardId}`));
+    }
+    if(h) await typeEffect(h.hadithUrdu, document.getElementById(`ur_h_${cardId}`));
+
+    const hasMore = (currentIdx + 1 < qMatches.length) || (currentIdx + 1 < hMatches.length);
+    if(hasMore) {
+        const moreBtn = document.createElement('button');
+        moreBtn.className = "load-more-btn";
+        moreBtn.innerHTML = `Next Result <i class="fa-solid fa-chevron-down"></i>`;
+        moreBtn.onclick = () => { currentIdx++; renderVerifiedResult(); };
+        thread.appendChild(moreBtn);
+    }
+    thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+}
+
+// --- UTILITIES ---
+async function typeEffect(txt, el) {
+    return new Promise(res => {
+        let i = 0; el.classList.add('typing');
+        const t = setInterval(() => {
+            el.innerText += txt.charAt(i); i++;
+            if(i >= txt.length) { clearInterval(t); el.classList.remove('typing'); res(); }
+            document.getElementById('chat-thread').scrollTop = document.getElementById('chat-thread').scrollHeight;
+        }, 10);
+    });
+}
+
+function snap(id) {
+    const node = document.getElementById(`capture_${id}`);
+    html2canvas(node, { backgroundColor: "#f8fafc", scale: 2 }).then(canvas => {
+        const a = document.createElement('a');
+        a.download = `NUR-Insight.png`;
+        a.href = canvas.toDataURL();
+        a.click();
+    });
+}
+
+function copyContent(id) {
+    const text = document.getElementById(`capture_${id}`).innerText;
+    navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+}
+	</script>
 </body>
     </html>
     
